@@ -8,6 +8,7 @@
 #include <drm_mode.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libdrm/drm_fourcc.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -335,6 +336,12 @@ static void init_buf(struct rendering_ctx *ctx, size_t idx)
 	buf_id_t buf_id;
 	target->stride = fb_create.pitch;
 	target->size = fb_create.size;
+
+	if (fb_create.pitch < fb_create.bpp / 8)
+		// This should never happen, save for bugs in the driver.
+		FATAL_ERR("DRM_IOCTL_MODE_CREATE_DUMB gave a stride of %" PRIu32
+			  " bytes, but this cannot fit %" PRIu32 "-bit pixels",
+		    fb_create.pitch, fb_create.bpp);
 
 	uint32_t handles[4] = { fb_create.handle };
 	uint32_t strides[4] = { fb_create.pitch };
