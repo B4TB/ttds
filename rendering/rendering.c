@@ -48,12 +48,6 @@ struct buffer {
 	uint8_t *data;
 };
 
-struct canvas {
-	uint16_t width, height;
-	uint32_t stride;
-	uint8_t *buffer;
-};
-
 struct rendering_ctx {
 	card_fd_t card_fd;
 	drmModeRes *res;
@@ -125,15 +119,36 @@ struct canvas *canvas_init(struct rendering_ctx *ctx)
 	return ret;
 }
 
+struct canvas *canvas_init_bgra(uint16_t width, uint16_t height)
+{
+	struct canvas *ret = malloc(sizeof(struct canvas));
+	if (ret == NULL)
+		return NULL;
+
+	ret->width = width;
+	ret->height = height;
+	ret->stride = 4; // BGRA -> 4 bytes per pixel
+
+	ret->buffer = malloc(canvas_buffer_size(ret));
+	if (ret->buffer == NULL)
+		return NULL;
+
+	return ret;
+}
+
 void canvas_deinit(struct canvas *c)
 {
 	free(c->buffer);
 	free(c);
 }
 
+uint64_t canvas_buffer_size(const struct canvas *c)
+{
+	return (uint64_t)c->width * (uint64_t)c->height * (uint64_t)c->stride;
+}
+
 void rendering_fill(struct canvas *c, struct color color)
 {
-	// Color space is little endian, thus the BGRA format used below:
 	for (uint16_t x = 0; x < c->width; x++)
 		for (uint16_t y = 0; y < c->height; y++)
 			draw_point(c, x, y, color);
@@ -216,6 +231,47 @@ void rendering_show(struct rendering_ctx *ctx, struct canvas *c)
 
 	// We now have a new front buffer.
 	ctx->front_buf_idx ^= 1;
+}
+
+void rendering_dump_bgra_to_rgba(const struct canvas *c, const char *pathname)
+{
+	assert(c->stride == 4);
+
+	// For easier testing, it's nice for the usage of this
+	// function to be pure memory manipulation, so we can't accept
+	// a rendering context. But, this means we have to manually
+	// compute the buffer size.
+	const uint64_t buffer_size = canvas_buffer_size(c);
+
+	const int fd = open(pathname, O_WRONLY | O_CREAT | O_TRUNC,
+	    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (fd < 0)
+		FATAL_ERR("Failed to open file for writing: %s: %s", pathname,
+		    STR_ERR);
+
+	// TODO(ula): buffered I/O. currently writing pixel at a time lol
+	for (uint64_t idx = 0; idx < buffer_size; idx += c->stride) {
+		uint8_t rgba_pixel[4] = {
+			c->buffer[idx + 2], // R
+			c->buffer[idx + 1], // G
+			c->buffer[idx + 0], // B
+			c->buffer[idx + 3], // A
+		};
+		static_assert(sizeof(rgba_pixel) == 4);
+
+		uint64_t written = 0;
+		while (written < sizeof(rgba_pixel)) {
+			const ssize_t result = write(fd, &rgba_pixel[written],
+			    sizeof(rgba_pixel) - written);
+			if (result < 0)
+				FATAL_ERR("Failed to write to file: %s: %s",
+				    pathname, STR_ERR);
+			written += result;
+		}
+	}
+
+	if (close(fd) < 0)
+		FATAL_ERR("Failed to close file: %s: %s", pathname, STR_ERR);
 }
 
 static void init_card(struct rendering_ctx *ctx)

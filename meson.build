@@ -9,10 +9,17 @@ add_project_arguments([
   '-pedantic', '-D_POSIX_C_SOURCE=200809L'
 ], language : 'c')
 
-exe = executable('ttds',
+main_exe = executable('ttds',
   'main.c', 'threads/ui.c', 'rendering/rendering.h', 'rendering/rendering.c',
   'threads/input.c', 'threads/termination.c', 'threads/commands.c',
   install : true,
   dependencies : [ libdrm, libsystemd ])
 
-test('basic', exe)
+debug_exe = executable('debug',
+  'debug.c', 'threads/ui.c', 'rendering/rendering.h', 'rendering/rendering.c',
+  'threads/input.c', 'threads/termination.c', 'threads/commands.c',
+  install : true,
+  dependencies : [ libdrm, libsystemd ])
+
+test('basic', main_exe)
+test('debug', debug_exe)
