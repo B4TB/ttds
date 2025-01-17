@@ -2,6 +2,7 @@
 
 #include "abort.h"
 
+#include <assert.h>
 #include <dirent.h>
 #include <drm.h>
 #include <drm_mode.h>
