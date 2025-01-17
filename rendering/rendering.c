@@ -434,7 +434,9 @@ static void draw_point(
 {
 	// Color space is little endian, thus the BGRA format used below:
 	uint8_t mapped[4] = { color.b, color.g, color.r, 0xFF };
+	assert(c->stride == sizeof(mapped));
 
-	size_t off = (c->stride * y) + (x * sizeof(mapped));
-	memcpy(&c->buffer[off], mapped, sizeof(mapped));
+	size_t pixel_idx = (size_t)y * (size_t)c->width + (size_t)x;
+	size_t byte_idx = pixel_idx * sizeof(mapped);
+	memcpy(&c->buffer[byte_idx], mapped, sizeof(mapped));
 }
