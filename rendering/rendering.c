@@ -496,6 +496,12 @@ static bool is_primary_plane(struct rendering_ctx *ctx, plane_id_t plane_id)
 static void draw_point(
     struct canvas *c, uint16_t x, uint16_t y, struct color color)
 {
+	// Drawing a point out of bounds is a no-op. This is
+	// especially important given that we're receiving
+	// arbitrary commands.
+	if (c->width <= x || c->height <= y)
+		return;
+
 	// Color space is little endian, thus the BGRA format used below:
 	uint8_t mapped[4] = { color.b, color.g, color.r, 0xFF };
 
