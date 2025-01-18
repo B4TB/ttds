@@ -8,6 +8,7 @@
 #include <drm_mode.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libdrm/drm_fourcc.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -392,6 +393,12 @@ static void init_buf(struct rendering_ctx *ctx, size_t idx)
 	target->stride = fb_create.pitch;
 	target->size = fb_create.size;
 
+	if (fb_create.pitch < fb_create.bpp / 8)
+		// This should never happen, save for bugs in the driver.
+		FATAL_ERR("DRM_IOCTL_MODE_CREATE_DUMB gave a stride of %" PRIu32
+			  " bytes, but this cannot fit %" PRIu32 "-bit pixels",
+		    fb_create.pitch, fb_create.bpp);
+
 	uint32_t handles[4] = { fb_create.handle };
 	uint32_t strides[4] = { fb_create.pitch };
 	uint32_t offsets[4] = { 0 };
@@ -491,9 +498,8 @@ static void draw_point(
 {
 	// Color space is little endian, thus the BGRA format used below:
 	uint8_t mapped[4] = { color.b, color.g, color.r, 0xFF };
-	assert(c->stride == sizeof(mapped));
 
 	size_t pixel_idx = (size_t)y * (size_t)c->width + (size_t)x;
-	size_t byte_idx = pixel_idx * sizeof(mapped);
+	size_t byte_idx = pixel_idx * c->stride;
 	memcpy(&c->buffer[byte_idx], mapped, sizeof(mapped));
 }
