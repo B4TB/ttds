@@ -32,7 +32,9 @@ struct pane_storage {
 };
 
 struct ui_ctx {
-	struct rendering_ctx *r_ctx;
+	struct rendering_vtable vt;
+	void *r_ctx; // type erased rendering context
+
 	struct pane_storage panes;
 
 	int cancellation_fd;
@@ -50,14 +52,14 @@ char *ui_failure_str(enum ui_failure f)
 	return ui_failure_strs[f];
 }
 
-struct ui_ctx *ui_ctx_new(void)
+struct ui_ctx *ui_ctx_new(struct rendering_vtable vt)
 {
 	struct ui_ctx *ctx = malloc(sizeof(struct ui_ctx));
 	if (!ctx)
 		FATAL_ERR("ui: failed to allocate ctx");
 
-	ctx->r_ctx = rendering_init();
-	rendering_ctx_log(ctx->r_ctx);
+	ctx->r_ctx = vt.rendering_init();
+	vt.rendering_ctx_log(ctx->r_ctx);
 
 	pthread_mutex_init(&ctx->panes.lock, NULL);
 
@@ -65,7 +67,7 @@ struct ui_ctx *ui_ctx_new(void)
 		FATAL_ERR("couldn't lock newly created pane mutex");
 
 	ctx->panes.count = 1;
-	ctx->panes.panes[0].canvas = canvas_init(ctx->r_ctx);
+	ctx->panes.panes[0].canvas = vt.canvas_init(ctx->r_ctx);
 	ctx->panes.panes[0].name = strdup("root");
 
 	if (!ctx->panes.panes[0].name)
@@ -115,7 +117,7 @@ void *ui_thread(void *arg)
 		free(ctx->panes.panes[i].name);
 	}
 
-	rendering_cleanup(ctx->r_ctx);
+	ctx->vt.rendering_cleanup(ctx->r_ctx);
 	free(ctx);
 
 	return NULL;
@@ -141,7 +143,7 @@ static void *rotate_panes(void *arg)
 		struct pane *p = &ctx->panes.panes[idx];
 
 		fprintf(stderr, "ui: flipping pane: %s\n", p->name);
-		rendering_show(ctx->r_ctx, p->canvas);
+		ctx->vt.rendering_show(ctx->r_ctx, p->canvas);
 
 		r = pthread_mutex_unlock(&ctx->panes.lock);
 		if (r != 0)
@@ -180,7 +182,7 @@ enum ui_failure ui_pane_create(
 	if (!p->name)
 		return UI_OOM;
 
-	p->canvas = canvas_init(ctx->r_ctx);
+	p->canvas = ctx->vt.canvas_init(ctx->r_ctx);
 	if (!p->canvas) {
 		free(p->name);
 		return UI_OOM;

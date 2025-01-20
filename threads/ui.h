@@ -4,7 +4,7 @@
 
 struct ui_ctx;
 
-struct ui_ctx *ui_ctx_new(void);
+struct ui_ctx *ui_ctx_new(struct rendering_vtable vt);
 
 void *ui_thread(void *);
 

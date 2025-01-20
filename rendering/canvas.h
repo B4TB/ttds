@@ -25,6 +25,8 @@ struct canvas {
 
 // NOTE: canvas_init is backend-specific, so is not defined here
 
+// TODO: kinda uncomfortable to separate init and deinit like this, assumes all
+// the allocations used malloc. sure, though.
 void canvas_deinit(struct canvas *);
 
 void rendering_fill(struct canvas *, struct color);

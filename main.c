@@ -1,4 +1,5 @@
 #include "abort.h"
+#include "rendering/rendering.h"
 #include "threads/commands.h"
 #include "threads/input.h"
 #include "threads/termination.h"
@@ -25,6 +26,9 @@
 
 int main(void)
 {
+	// Set up the backend to use.
+	struct rendering_vtable vt = drm_backend_new(); // TODO: hardcoded
+
 	// When running under webproc[1] for debugging, line buffering needs to
 	// be enabled explicitly. Otherwise, we don't get logs when we think we
 	// should get logs.
@@ -42,7 +46,7 @@ int main(void)
 	sigprocmask(SIG_BLOCK, &f, &b);
 
 	// Spawn child threads.
-	struct ui_ctx *ui_ctx = ui_ctx_new();
+	struct ui_ctx *ui_ctx = ui_ctx_new(vt);
 	SPAWN_THREAD(ui_thread, ui_handle, ui_ctx);
 	SPAWN_THREAD(input_thread, input_handle, NULL);
 	SPAWN_THREAD(cmd_thread, cmd_handle, ui_ctx);
