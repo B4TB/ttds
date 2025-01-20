@@ -121,15 +121,22 @@ struct canvas *canvas_init(struct rendering_ctx *ctx)
 
 struct canvas *canvas_init_bgra(uint16_t width, uint16_t height)
 {
+	// These Linux sources were helpful in understanding the intended
+	// memory layout & alignment of these pixel buffers
+	// (as of commit ffd294d346d185b70e28b1a28abe367bbfe53c04):
+	// - linux/drivers/gpu/drm/drm_dumb_buffers.c:60
+	// - linux/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c:942
+	// - linux/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c:916
+
 	struct canvas *ret = malloc(sizeof(struct canvas));
 	if (ret == NULL)
 		return NULL;
 
 	ret->width = width;
 	ret->height = height;
-	ret->stride = 4; // BGRA -> 4 bytes per pixel
+	ret->stride = width * 4;
 
-	ret->buffer = malloc(canvas_buffer_size(ret));
+	ret->buffer = calloc(ret->height, ret->stride);
 	if (ret->buffer == NULL)
 		return NULL;
 
@@ -140,11 +147,6 @@ void canvas_deinit(struct canvas *c)
 {
 	free(c->buffer);
 	free(c);
-}
-
-uint64_t canvas_buffer_size(const struct canvas *c)
-{
-	return (uint64_t)c->width * (uint64_t)c->height * (uint64_t)c->stride;
 }
 
 void rendering_fill(struct canvas *c, struct color color)
@@ -235,14 +237,6 @@ void rendering_show(struct rendering_ctx *ctx, struct canvas *c)
 
 void rendering_dump_bgra_to_rgba(const struct canvas *c, const char *pathname)
 {
-	assert(c->stride == 4);
-
-	// For easier testing, it's nice for the usage of this
-	// function to be pure memory manipulation, so we can't accept
-	// a rendering context. But, this means we have to manually
-	// compute the buffer size.
-	const uint64_t buffer_size = canvas_buffer_size(c);
-
 	const int fd = open(pathname, O_WRONLY | O_CREAT | O_TRUNC,
 	    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (fd < 0)
@@ -250,23 +244,27 @@ void rendering_dump_bgra_to_rgba(const struct canvas *c, const char *pathname)
 		    STR_ERR);
 
 	// TODO(ula): buffered I/O. currently writing pixel at a time lol
-	for (uint64_t idx = 0; idx < buffer_size; idx += c->stride) {
-		uint8_t rgba_pixel[4] = {
-			c->buffer[idx + 2], // R
-			c->buffer[idx + 1], // G
-			c->buffer[idx + 0], // B
-			c->buffer[idx + 3], // A
-		};
-		static_assert(sizeof(rgba_pixel) == 4);
+	for (uint16_t y = 0; y < c->height; y++) {
+		for (uint16_t x = 0; x < c->width; x++) {
+			const size_t idx = (c->stride * y) + (x * 4);
+			const uint8_t rgba_pixel[4] = {
+				c->buffer[idx + 2], // R
+				c->buffer[idx + 1], // G
+				c->buffer[idx + 0], // B
+				c->buffer[idx + 3], // A
+			};
 
-		uint64_t written = 0;
-		while (written < sizeof(rgba_pixel)) {
-			const ssize_t result = write(fd, &rgba_pixel[written],
-			    sizeof(rgba_pixel) - written);
-			if (result < 0)
-				FATAL_ERR("Failed to write to file: %s: %s",
-				    pathname, STR_ERR);
-			written += result;
+			uint64_t written = 0;
+			while (written < sizeof(rgba_pixel)) {
+				const ssize_t result =
+				    write(fd, &rgba_pixel[written],
+					sizeof(rgba_pixel) - written);
+				if (result < 0)
+					FATAL_ERR(
+					    "Failed to write to file: %s: %s",
+					    pathname, STR_ERR);
+				written += result;
+			}
 		}
 	}
 
