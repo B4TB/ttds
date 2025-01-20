@@ -10,8 +10,9 @@ add_project_arguments([
 ], language : 'c')
 
 exe = executable('ttds',
-  'main.c', 'threads/ui.c', 'rendering/rendering.h', 'rendering/rendering.c',
-  'threads/input.c', 'threads/termination.c', 'threads/commands.c',
+  'main.c',
+  'threads/ui.c', 'threads/input.c', 'threads/termination.c', 'threads/commands.c',
+  'rendering/rendering.h', 'rendering/rendering.c', 'rendering/canvas.c', 'rendering/canvas.h',
   install : true,
   dependencies : [ libdrm, libsystemd ])
 
