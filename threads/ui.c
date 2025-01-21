@@ -59,6 +59,8 @@ struct ui_ctx *ui_ctx_new(struct rendering_vtable vt)
 		FATAL_ERR("ui: failed to allocate ctx");
 
 	ctx->r_ctx = vt.rendering_init();
+	ctx->vt = vt;
+
 	vt.rendering_ctx_log(ctx->r_ctx);
 
 	pthread_mutex_init(&ctx->panes.lock, NULL);
