@@ -120,10 +120,6 @@ struct args parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	// Parse command-line arguments. This only returns if they're valid.
-	const struct args args = parse_args(argc, argv);
-	const struct rendering_vtable vt = supported_backends[args.backend];
-
 	// When running under webproc[1] for debugging, line buffering needs to
 	// be enabled explicitly. Otherwise, we don't get logs when we think we
 	// should get logs.
@@ -131,6 +127,10 @@ int main(int argc, char *argv[])
 	// [1]: https://github.com/atalii/webproc
 	setvbuf(stdout, NULL, _IOLBF, 32);
 	setvbuf(stderr, NULL, _IOLBF, 32);
+
+	// Parse command-line arguments. This only returns if they're valid.
+	const struct args args = parse_args(argc, argv);
+	const struct rendering_vtable vt = supported_backends[args.backend];
 
 	term_init(4);
 
