@@ -116,7 +116,9 @@ void *ui_thread(void *arg)
 	pthread_create(&pane_handle, NULL, rotate_panes, ctx);
 
 	term_block();
-	write(cancellation_pipe[1], "\0", 1);
+	if (write(cancellation_pipe[1], "\0", 1) != 1)
+		FATAL_ERR("ui: failed to write to cancellation pipe");
+
 	pthread_join(pane_handle, NULL);
 
 	fprintf(stderr, "rendering: terminating\n");
