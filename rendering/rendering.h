@@ -10,4 +10,9 @@ struct rendering_vtable {
 	struct canvas *(*canvas_init)(void *r_ctx);
 };
 
-struct rendering_vtable drm_backend_new(void);
+enum backend {
+	BACKEND_DRM = 0,
+	BACKEND_COUNT,
+};
+
+extern const struct rendering_vtable supported_backends[BACKEND_COUNT];

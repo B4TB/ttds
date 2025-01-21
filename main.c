@@ -27,7 +27,8 @@
 int main(void)
 {
 	// Set up the backend to use.
-	struct rendering_vtable vt = drm_backend_new(); // TODO: hardcoded
+	enum backend backend = BACKEND_DRM; // TODO: hardcoded
+	struct rendering_vtable vt = supported_backends[backend];
 
 	// When running under webproc[1] for debugging, line buffering needs to
 	// be enabled explicitly. Otherwise, we don't get logs when we think we
