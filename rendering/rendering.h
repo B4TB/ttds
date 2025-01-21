@@ -11,7 +11,7 @@ struct rendering_vtable {
 };
 
 enum backend {
-	BACKEND_DRM = 0,
+	BACKEND_DRM,
 	BACKEND_COUNT,
 };
 
