@@ -15,7 +15,6 @@ struct rect {
 };
 
 struct rect_copy {
-	// TODO: use existing rect struct and have unused color field?
 	uint16_t dst_x, dst_y;
 	uint16_t src_x, src_y;
 	uint16_t w, h;
