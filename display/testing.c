@@ -33,6 +33,7 @@ static void run_these_tests(
 static void test_rects(struct canvas *c);
 static void test_circles(struct canvas *c);
 static void test_lines_burst(struct canvas *c);
+static void test_copy_rect(struct canvas *c);
 
 void run_tests(const char *dump_dir)
 {
@@ -57,6 +58,13 @@ void run_tests(const char *dump_dir)
 		    .output_path = "lines-burst.data",
 		    .width = 32,
 		    .height = 32,
+		},
+		{
+		    .fill_color = BG,
+		    .draw_fn = test_copy_rect,
+		    .output_path = "copy-rect.data",
+		    .width = 128,
+		    .height = 128,
 		},
 	};
 
@@ -211,4 +219,73 @@ static void test_lines_burst(struct canvas *c)
 			rendering_draw_line(c, &line);
 		}
 	}
+}
+
+void test_copy_rect(struct canvas *c)
+{
+	// Fill the screen with something.
+	test_circles(c);
+
+	// Non-overlapping copy.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = 0,
+		.dst_y = c->height / 2,
+		.src_x = 0,
+		.src_y = 0,
+		.w = c->width / 2,
+		.h = c->height / 2 });
+
+	// Overlapping, directed NW.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = c->width / 3,
+		.dst_y = c->height / 3,
+		.src_x = c->width / 2,
+		.src_y = c->height / 2,
+		.w = c->width / 2,
+		.h = c->height / 2 });
+
+	// Overlapping, directed E.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = c->width / 4,
+		.dst_y = 0,
+		.src_x = 0,
+		.src_y = 0,
+		.w = c->width / 2,
+		.h = c->height / 2 });
+
+	// Overlapping, directed W.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = c->width / 4,
+		.dst_y = c->height / 2,
+		.src_x = c->width / 2,
+		.src_y = c->height / 2,
+		.w = c->width / 2,
+		.h = c->height / 2 });
+
+	// Overlapping, directed SE.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = c->width / 8,
+		.dst_y = c->height / 4,
+		.src_x = 0,
+		.src_y = c->height / 8,
+		.w = c->width / 2,
+		.h = c->height / 2 });
+
+	// Out of bounds, intersecting pixel strip at S edge.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = c->width / 2,
+		.dst_y = c->height - 1,
+		.src_x = 0,
+		.src_y = c->height / 2,
+		.w = c->width,
+		.h = c->height });
+
+	// Out of bounds, intersecting near E edge.
+	rendering_draw_rect_copy(c,
+	    &(struct rect_copy) { .dst_x = c->width * 16 / 17,
+		.dst_y = 0,
+		.src_x = c->width * 3 / 4,
+		.src_y = c->height / 3,
+		.w = c->width,
+		.h = c->height });
 }

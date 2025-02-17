@@ -22,7 +22,8 @@
 		rendering_draw_##type(c, v);                                  \
 	}
 
-static inline intmax_t max(intmax_t a, intmax_t b);
+static inline intmax_t min(intmax_t, intmax_t);
+static inline intmax_t max(intmax_t, intmax_t);
 static void draw_point(struct canvas *, int32_t x, int32_t y, struct color);
 
 struct canvas *canvas_init_bgra(uint16_t width, uint16_t height)
@@ -210,6 +211,47 @@ DEFN_RENDER(line, {
 	}
 })
 
+DEFN_RENDER(rect_copy, {
+	const struct rect_copy rc = *rect_copy;
+
+	// The regions may overlap, so we care whether we are incrementing or
+	// decrementing the y coordinate while traversing the source. When the
+	// copy is solely horizontal, we prefer incrementing.
+	const bool y_inc = rc.dst_y <= rc.src_y; // Flipped because +y is down.
+
+	// TODO: so verbose
+
+	const uint32_t src_right_edge = (uint32_t)rc.src_x + rc.w;
+	const uint32_t dst_right_edge = (uint32_t)rc.dst_x + rc.w;
+	const uint32_t src_bottom_edge = (uint32_t)rc.src_y + rc.h;
+	const uint32_t dst_bottom_edge = (uint32_t)rc.dst_y + rc.h;
+
+	const int32_t src_safe_width =
+	    (int32_t)min(c->width, src_right_edge) - rc.src_x;
+	const int32_t dst_safe_width =
+	    (int32_t)min(c->width, dst_right_edge) - rc.dst_x;
+
+	const int32_t src_safe_height =
+	    (int32_t)min(c->height, src_bottom_edge) - rc.src_y;
+	const int32_t dst_safe_height =
+	    (int32_t)min(c->height, dst_bottom_edge) - rc.dst_y;
+
+	const int32_t safe_width = min(dst_safe_width, src_safe_width);
+	const int32_t safe_height = min(dst_safe_height, src_safe_height);
+	if (safe_width <= 0)
+		return;
+
+	for (int32_t dy = y_inc ? 0 : safe_height - 1;
+	    dy < safe_height && dy >= 0; y_inc ? dy++ : dy--) {
+		uint16_t src_row_y = rc.src_y + dy;
+		uint16_t dst_row_y = rc.dst_y + dy;
+		size_t src_idx = (size_t)c->stride * src_row_y + (rc.src_x * 4);
+		size_t dst_idx = (size_t)c->stride * dst_row_y + (rc.dst_x * 4);
+		memmove(&c->buffer[dst_idx], &c->buffer[src_idx],
+		    (size_t)safe_width * 4);
+	}
+})
+
 void rendering_dump_bgra_to_rgba(
     const struct canvas *c, DIR *dir, const char *dirpath, const char *path)
 {
@@ -251,6 +293,11 @@ void rendering_dump_bgra_to_rgba(
 	if (close(fd) < 0)
 		FATAL_ERR(
 		    "Failed to close file: %s/%s: %s", dirpath, path, STR_ERR);
+}
+
+static inline intmax_t min(intmax_t a, intmax_t b)
+{
+	return a < b ? a : b;
 }
 
 static inline intmax_t max(intmax_t a, intmax_t b)

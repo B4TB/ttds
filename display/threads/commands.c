@@ -61,6 +61,8 @@ static void act_remove(struct ui_ctx *, char *target, size_t argc, char **argv);
 static void act_rect(struct ui_ctx *, char *target, size_t argc, char **argv);
 static void act_circle(struct ui_ctx *, char *target, size_t argc, char **argv);
 static void act_line(struct ui_ctx *, char *target, size_t argc, char **argv);
+static void act_copy_rect(
+    struct ui_ctx *, char *target, size_t argc, char **argv);
 
 static void act_term(struct ui_ctx *, char *target, size_t argc, char **argv);
 
@@ -73,6 +75,7 @@ static const struct action_container actions[] = {
 	{ "RECT", act_rect },
 	{ "CIRCLE", act_circle },
 	{ "LINE", act_line },
+	{ "COPY_RECT", act_copy_rect },
 };
 
 static const struct action_container root_actions[] = {
@@ -382,6 +385,22 @@ static void act_line(struct ui_ctx *ctx, char *target, size_t argc, char **argv)
 
 	enum ui_failure r = ui_pane_draw_shape(
 	    ctx, target, &line, rendering_draw_line_type_erased);
+
+	if (r != UI_OK)
+		printf("failure: ui_pane_draw_shape: %s\n", ui_failure_str(r));
+}
+
+static void act_copy_rect(
+    struct ui_ctx *ctx, char *target, size_t argc, char **argv)
+{
+	struct rect_copy rc;
+
+	if (!parse_args("iiiiii", argc, argv, &rc.dst_x, &rc.dst_y, &rc.src_x,
+		&rc.src_y, &rc.w, &rc.h))
+		return;
+
+	enum ui_failure r = ui_pane_draw_shape(
+	    ctx, target, &rc, rendering_draw_rect_copy_type_erased);
 
 	if (r != UI_OK)
 		printf("failure: ui_pane_draw_shape: %s\n", ui_failure_str(r));
