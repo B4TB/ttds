@@ -219,8 +219,6 @@ DEFN_RENDER(rect_copy, {
 	// copy is solely horizontal, we prefer incrementing.
 	const bool y_inc = rc.dst_y <= rc.src_y; // Flipped because +y is down.
 
-	// TODO: so verbose
-
 	const uint32_t src_right_edge = (uint32_t)rc.src_x + rc.w;
 	const uint32_t dst_right_edge = (uint32_t)rc.dst_x + rc.w;
 	const uint32_t src_bottom_edge = (uint32_t)rc.src_y + rc.h;
