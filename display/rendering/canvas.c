@@ -185,7 +185,7 @@ DEFN_RENDER(line, {
 	int32_t d1_x = -steps * (step_x + lstep_x);
 	int32_t d1_y = -steps * (step_y + lstep_y);
 
-	for (uint16_t i = 0; i <= steps; i++) {
+	for (int32_t i = 0; i <= steps; i++) {
 		draw_point(c, x, y, color);
 
 		const int32_t px = abs(d0_x) - abs(d1_x);
