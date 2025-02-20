@@ -65,8 +65,6 @@ void rendering_fill(struct canvas *c, struct color color)
 }
 
 DEFN_RENDER(rect, {
-	printf("%d, %d, %d\n", rect->c.r, rect->c.g, rect->c.b);
-
 	uint16_t right_edge = rect->x + rect->w;
 	uint16_t bottom_edge = rect->y + rect->h;
 	for (uint16_t y = rect->y; y < bottom_edge && y < c->height; y++)
