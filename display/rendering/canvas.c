@@ -4,6 +4,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,9 @@
 
 static inline intmax_t min(intmax_t, intmax_t);
 static inline intmax_t max(intmax_t, intmax_t);
+static inline float lerp(float start, float end, float t);
+static void bezier2_compute(struct bezier2 b, float t, float *x, float *y);
+static float bezier2_arclen_approx(struct bezier2 b, size_t n);
 static void draw_point(struct canvas *, int32_t x, int32_t y, struct color);
 
 struct canvas *canvas_init_bgra(uint16_t width, uint16_t height)
@@ -245,6 +249,49 @@ DEFN_RENDER(rect_copy) {
 	}
 }
 
+static void bezier2_compute(struct bezier2 b, float t, float *x, float *y)
+{
+	float px0 = lerp(b.x0, b.x1, t);
+	float py0 = lerp(b.y0, b.y1, t);
+	float px1 = lerp(b.x1, b.x2, t);
+	float py1 = lerp(b.y1, b.y2, t);
+	*x = lerp(px0, px1, t);
+	*y = lerp(py0, py1, t);
+}
+
+static float bezier2_arclen_approx(struct bezier2 b, size_t n)
+{
+	float dist = 0;
+	for (size_t i = 1; i <= n; i++) {
+		float x1, y1, x0, y0;
+		bezier2_compute(b, (float)i / (float)n, &x1, &y1);
+		bezier2_compute(b, (float)(i - 1) / (float)n, &x0, &y0);
+		// TODO: surely not good for precision and performance
+		dist += sqrtf(powf(x1 - x0, 2) + powf(y1 - y0, 2));
+	}
+	return dist;
+}
+
+DEFN_RENDER(bezier2) {
+	const struct bezier2 b = *bezier2;
+
+	// TODO: not pixel perfect (this approach is heuristic)
+
+	// TODO: i care more about the point with the greatest
+	// velocity than i do the average (represented by an
+	// arclength), because that is where gaps in pixels may
+	// appear.
+
+	size_t arclen_precision = 13;
+	float density = 2.0;
+	float dt = 1.0 / (bezier2_arclen_approx(b, arclen_precision) * density);
+	for (float t = 0.0; t <= 1.0; t += dt) {
+		float px, py;
+		bezier2_compute(b, t, &px, &py);
+		draw_point(c, roundf(px), roundf(py), b.c);
+	}
+}
+
 void rendering_dump_bgra_to_rgba(
     const struct canvas *c, DIR *dir, const char *dirpath, const char *path)
 {
@@ -296,6 +343,11 @@ static inline intmax_t min(intmax_t a, intmax_t b)
 static inline intmax_t max(intmax_t a, intmax_t b)
 {
 	return a < b ? b : a;
+}
+
+static inline float lerp(float start, float end, float t)
+{
+	return t * end + (1 - t) * start;
 }
 
 static void draw_point(

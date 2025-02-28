@@ -62,6 +62,8 @@ static char *act_circle(struct ui_ctx *, char *target, size_t argc, char **argv)
 static char *act_line(struct ui_ctx *, char *target, size_t argc, char **argv);
 static char *act_copy_rect(
     struct ui_ctx *, char *target, size_t argc, char **argv);
+static char *act_bezier2(
+    struct ui_ctx *, char *target, size_t argc, char **argv);
 
 static char *act_term(struct ui_ctx *, char *target, size_t argc, char **argv);
 
@@ -75,6 +77,7 @@ static const struct action_container actions[] = {
 	{ "CIRCLE", act_circle },
 	{ "LINE", act_line },
 	{ "COPY_RECT", act_copy_rect },
+	{ "BEZIER2", act_bezier2 },
 };
 
 static const struct action_container root_actions[] = {
@@ -354,7 +357,7 @@ static char *act_rect(struct ui_ctx *ctx, char *target, size_t argc, char **argv
 	char *err_buf = NULL;
 	struct rect rect;
 
-	size_t x, y, w, h;
+	long x, y, w, h;
 
 	if ((err_buf = parse_args("ciiii", argc, argv, &rect.c, &x, &y, &w, &h)))
 		return err_buf;
@@ -381,7 +384,7 @@ static char *act_circle(
 	char *err_buf = NULL;
 	struct circle circle;
 
-	size_t x, y, rad;
+	long x, y, rad;
 
 	if ((err_buf = parse_args("ciii", argc, argv, &circle.c, &x, &y, &rad)))
 		return err_buf;
@@ -406,7 +409,7 @@ static char *act_line(struct ui_ctx *ctx, char *target, size_t argc, char **argv
 	char *err_buf = NULL;
 	struct line line;
 
-	size_t x0, y0, x1, y1;
+	long x0, y0, x1, y1;
 
 	if ((err_buf = parse_args("ciiii", argc, argv, &line.c, &x0, &y0, &x1, &y1)))
 		return err_buf;
@@ -433,7 +436,8 @@ static char *act_copy_rect(
 	char *err_buf = NULL;
 	struct rect_copy rc;
 
-	size_t dst_x, dst_y, src_x, src_y, w, h;
+	long dst_x, dst_y, src_x, src_y, w, h;
+
 	if ((err_buf = parse_args(
 		"iiiiii", argc, argv, &dst_x, &dst_y, &src_x, &src_y, &w, &h)))
 		return err_buf;
@@ -451,6 +455,37 @@ static char *act_copy_rect(
 	if (r != UI_OK) {
 		err_buf = malloc(1024);
 		snprintf(err_buf, 1024, "act_copy_rect: failed: %s", ui_failure_str(r));
+	}
+
+	return err_buf;
+}
+
+static char *act_bezier2(
+    struct ui_ctx *ctx, char *target, size_t argc, char **argv)
+{
+	char *err_buf = NULL;
+	struct bezier2 b;
+
+	long x0, y0, x1, y1, x2, y2;
+
+	if ((err_buf = parse_args(
+		 "ciiiiii", argc, argv, &b.c, &x0, &y0, &x1, &y1, &x2, &y2)))
+		return err_buf;
+
+	b.x0 = x0;
+	b.y0 = y0;
+	b.x1 = x1;
+	b.y1 = y1;
+	b.x2 = x2;
+	b.y2 = y2;
+
+	enum ui_failure r = ui_pane_draw_shape(
+	    ctx, target, &b, rendering_draw_bezier2_type_erased);
+
+	if (r != UI_OK) {
+		err_buf = malloc(1024);
+		snprintf(err_buf, 1024, "act_bezier2: failed: %s",
+		    ui_failure_str(r));
 	}
 
 	return err_buf;
@@ -513,7 +548,7 @@ static char *parse_args(const char *fmt, size_t argc, char **argv, ...)
 
 			break;
 		case 'i':
-			size_t *out = va_arg(args, size_t *);
+			long *out = va_arg(args, long *);
 			char *end = NULL;
 			long iout = strtol(in, &end, 0);
 			*out = iout;

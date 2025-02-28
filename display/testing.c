@@ -34,6 +34,7 @@ static void test_rects(struct canvas *c);
 static void test_circles(struct canvas *c);
 static void test_lines_burst(struct canvas *c);
 static void test_copy_rect(struct canvas *c);
+static void test_bezier2(struct canvas *c);
 
 void run_tests(const char *dump_dir)
 {
@@ -63,6 +64,13 @@ void run_tests(const char *dump_dir)
 		    .fill_color = BG,
 		    .draw_fn = test_copy_rect,
 		    .output_path = "copy-rect.data",
+		    .width = 128,
+		    .height = 128,
+		},
+		{
+		    .fill_color = BG,
+		    .draw_fn = test_bezier2,
+		    .output_path = "bezier2.data",
 		    .width = 128,
 		    .height = 128,
 		},
@@ -221,7 +229,7 @@ static void test_lines_burst(struct canvas *c)
 	}
 }
 
-void test_copy_rect(struct canvas *c)
+static void test_copy_rect(struct canvas *c)
 {
 	// Fill the screen with something.
 	test_circles(c);
@@ -288,4 +296,33 @@ void test_copy_rect(struct canvas *c)
 		.src_y = c->height / 3,
 		.w = c->width,
 		.h = c->height });
+}
+
+static void test_bezier2(struct canvas *c)
+{
+	const int32_t cols = 8;
+	const int32_t rows = 8;
+
+	const int32_t col_len = c->width / cols;
+	const int32_t row_len = c->height / rows;
+
+	for (int32_t col = 0; col < cols; col++) {
+		for (int32_t row = 0; row < rows; row++) {
+			int32_t col_start = col * col_len;
+			int32_t row_start = row * row_len;
+			int32_t dx = col * col_len / cols;
+			int32_t dy = row * row_len / rows;
+
+			rendering_draw_bezier2(c,
+			    &(struct bezier2) {
+				.x0 = col_start + col_len - dx,
+				.y0 = row_start + row_len - dy,
+				.x1 = col_start + col_len,
+				.y1 = row_start + dy,
+				.x2 = col_start,
+				.y2 = row_start + row_len,
+				.c = FG,
+			    });
+		}
+	}
 }
