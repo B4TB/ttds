@@ -2,7 +2,6 @@
 #include "rendering/rendering.h"
 #include "testing.h"
 #include "threads/commands.h"
-#include "threads/input.h"
 #include "threads/termination.h"
 #include "threads/ui.h"
 
@@ -84,7 +83,7 @@ int main(int argc, char *argv[])
 	// Spawn child threads.
 	struct ui_ctx *ui_ctx = ui_ctx_new(vt);
 	SPAWN_THREAD(ui_thread, ui_handle, ui_ctx);
-	SPAWN_THREAD(input_thread, input_handle, NULL);
+	SPAWN_THREAD(vt.input_thread, input_handle, NULL);
 	SPAWN_THREAD(cmd_thread, cmd_handle, ui_ctx);
 
 	// Block for SIGINT.

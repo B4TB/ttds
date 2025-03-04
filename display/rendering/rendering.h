@@ -19,6 +19,11 @@ struct rendering_vtable {
 	/// Construct a canvas with parameters matching the backend.
 	/// Returns null if allocation fails.
 	struct canvas *(*canvas_init)(void *r_ctx);
+
+	/// This thread handles input, whatever that means for the specific
+	/// backend. For implementors, the thread must call `term_block` before
+	/// it returns. The return value is unused.
+	void *(*input_thread)(void *unused);
 };
 
 enum backend {
