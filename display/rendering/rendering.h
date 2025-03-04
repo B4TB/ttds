@@ -3,10 +3,21 @@
 #include "canvas.h"
 
 struct rendering_vtable {
+	/// Initialize the rendering backend, returning an opaque context.
+	/// Returns null if allocation fails.
 	void *(*rendering_init)(void);
+
+	/// Deinitialize the rendering backend, invalidating the context.
 	void (*rendering_cleanup)(void *r_ctx);
+
+	/// Log backend-specific parameters.
 	void (*rendering_ctx_log)(const void *r_ctx);
+
+	/// Give the backend a canvas to display.
 	void (*rendering_show)(void *r_ctx, struct canvas *);
+
+	/// Construct a canvas with parameters matching the backend.
+	/// Returns null if allocation fails.
 	struct canvas *(*canvas_init)(void *r_ctx);
 };
 
