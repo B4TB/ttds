@@ -46,6 +46,7 @@ static struct args parse_args(int argc, char **argv);
 const struct backend_opt backend_strings[] = {
 	// The first backend is treated as the default.
 	{ BACKEND_DRM, "DRM", "directly use the Linux DRM subsystem" },
+	{ BACKEND_MEM, "MEM", "drawing uses zero I/O, only happens in-memory" },
 };
 
 int main(int argc, char *argv[])

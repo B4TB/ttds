@@ -28,6 +28,7 @@ struct rendering_vtable {
 
 enum backend {
 	BACKEND_DRM,
+	BACKEND_MEM,
 };
 
 extern const struct rendering_vtable supported_backends[];

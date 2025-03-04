@@ -16,6 +16,7 @@ exe = executable('ttds',
   'threads/ui.c', 'threads/commands.c', 'threads/termination.c',
   'rendering/rendering.c', 'rendering/canvas.c',
   'rendering/drm/drm.c', 'rendering/drm/input.c',
+  'rendering/mem/mem.c',
   install : true,
   link_args : ['-lm'],
   dependencies : [ libdrm, libsystemd ])
