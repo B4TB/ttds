@@ -6,12 +6,12 @@ module Main where
 
 import Auth (TokenStore, checkAuth, initTokenStore, register, unregister, verifyAdmin)
 import Control.Monad.IO.Class (liftIO)
-import Data.Text (unpack)
+import qualified Data.Text as T
 import Data.Text.Lazy (pack, toStrict)
 import Data.UUID (toText)
 import GHC.Conc (atomically)
 import Network.HTTP.Types.Status (badRequest400, unauthorized401)
-import Proc (Proc, call, kill, launch, mkCommand)
+import Proc (Proc, call, kill, launch, mkCommand, mkUnvalidatedCommand, mkComp)
 import System.Environment (getArgs)
 import System.Posix.Signals (Handler (..), installHandler, sigINT)
 import Web.Scotty (ScottyM, ActionM, capture, delete, finish, header, notFound, pathParam, post, queryParam, scotty, status, text)
@@ -32,22 +32,22 @@ main = getArgs >>= launch >>= setupAndRun
 runWebServer :: Proc -> TokenStore -> IO ()
 runWebServer proc ts =
   scotty 8080 $ do
-    post "/raw/:text" $ requireAdmin ts >> pathParam "text" >>= routeRaw . mkCommand
+    post "/raw/:text" $ requireAdmin ts >> pathParam "text" >>= routeRaw
     post "/pane/:pane/create" $ do
       pane <- pathParam "pane"
       color <- queryParam "color"
       liftIO $ putStrLn color
       callCreate pane color
-      registerPane pane
+      registerPane (T.pack pane)
 
     makeDrawRoute "RECT" "rect" ["color", "x", "y", "w", "h"]
     makeDrawRoute "CIRCLE" "circle" ["color", "x", "y", "r"]
     makeDrawRoute "LINE" "line" ["color", "x", "y", "x2", "y2"]
-    makeDrawRoute "COPY_RECT" "copy_rect" ["x2", "y2", "x", "y", "w", "h"]
+    makeDrawRoute "COPY_RECT" "copy_rect" ["x", "y", "x2", "y2", "w", "h"]
 
     delete "/pane/:pane" $
       pathParam "pane" >>= checkAuthScotty >>= \pane ->
-        callDelete pane >> liftIO (unregister ts pane)
+        callDelete (T.unpack pane) >> liftIO (unregister ts pane)
 
     notFound $ text "404\n"
   where
@@ -56,14 +56,14 @@ runWebServer proc ts =
       pane <- pathParam "pane"
       vals <- mapM (queryParam . pack) args
       _ <- checkAuthScotty pane
-      callStr $ unpack pane ++ ": " ++ cmd ++ " " ++ unwords vals
+      callCmd $ mkCommand ((mkComp . T.unpack) pane) (mkComp cmd) (map mkComp vals)
 
     callAct cmd = liftIO $ call proc cmd
-    routeRaw cmd = callAct cmd >>= text . pack
+    routeRaw cmd = (callAct . mkUnvalidatedCommand) cmd >>= text . pack
 
     registerPane name =
       (liftIO . register ts) name >>= \case
-        Just uuid -> (text . pack . unpack . toText) uuid
+        Just uuid -> (text . pack . T.unpack . toText) uuid
         Nothing -> status badRequest400 >> text "Pane with same name exists." >> finish
 
     checkAuthScotty name = header "Auth" >>= check >>= serve
@@ -74,10 +74,11 @@ runWebServer proc ts =
         serve True = return name
         serve False = status unauthorized401 >> finish
 
-    callCreate name color = callStr $ unpack name ++ ": CREATE " ++ color
-    callDelete name = callStr $ unpack name ++ ": REMOVE"
+    callCreate name color = callCmd $ mkCommand (mkComp name) (mkComp "CREATE") [mkComp color]
 
-    callStr cmd = (liftIO . callAct . mkCommand) cmd >>= \case
+    callDelete name = callCmd $ mkCommand (mkComp name) (mkComp "REMOVE") []
+
+    callCmd cmd = callAct cmd >>= \case
       "OK" -> return ()
       x -> (text . pack) x >> finish
 

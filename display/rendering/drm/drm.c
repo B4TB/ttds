@@ -116,11 +116,10 @@ void drm_rendering_show(void *r_ctx, struct canvas *c)
 	struct buffer back = ctx->bufs[1 ^ ctx->front_buf_idx];
 	memcpy(back.data, c->buffer, back.size);
 
-	int r =
-	    drmModePageFlip(ctx->card_fd, ctx->crtc->crtc_id, back.id, 0, NULL);
-
-	if (r != 0)
-		FATAL_ERR("drmModePageFlip failed: %s", STR_ERR);
+	while (drmModePageFlip(ctx->card_fd, ctx->crtc->crtc_id, back.id, 0, NULL) != 0) {
+		if (errno != EBUSY)
+			FATAL_ERR("drmModePageFlip failed: %s", STR_ERR);
+	}
 
 	// We now have a new front buffer.
 	ctx->front_buf_idx ^= 1;

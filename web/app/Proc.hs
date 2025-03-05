@@ -1,4 +1,4 @@
-module Proc (Proc, launch, call, kill, Command, mkCommand) where
+module Proc (Proc, launch, call, kill, Command, CommandComponent, mkComp, mkCommand, mkUnvalidatedCommand) where
 
 import Control.Concurrent.MVar (MVar, newMVar, withMVar)
 import Control.Exception (Exception)
@@ -20,17 +20,31 @@ instance Exception ProcFailureException
 
 newtype Command = Command String
 
-mkCommand :: String -> Command
-mkCommand = Command . validate
+newtype CommandComponent = CommandComponent String
+type Target = CommandComponent
+type Argument = CommandComponent
+type Action = CommandComponent
+
+mkComp :: String -> CommandComponent
+mkComp = CommandComponent . validate
   where
-    validate :: String -> String
-    validate ('\n' : xs) = validate xs
-    validate (';' : xs) = validate xs
-    validate (x : xs) = x : validate xs
+    validate (x:xs) = if shouldFilter x then '_' : validate xs else x : validate xs
     validate [] = []
+
+    shouldFilter c = (c == ' ') || (c == ';') || (c == ':') || (c == '\n') || (c == '\0')
+
+mkCommand :: Target -> Action -> [Argument] -> Command
+mkCommand target action args = Command $ unComp target ++ ": " ++ unComp action ++ " " ++ (unwords $ map unComp args)
+  where
+    unComp (CommandComponent s) = s
 
 kill :: Proc -> IO ()
 kill lock = withMVar lock $ terminateProcess . getHandle
+
+-- Create a command without validating it and without stripping potentially
+-- dangerous characters.
+mkUnvalidatedCommand :: String -> Command
+mkUnvalidatedCommand = Command
 
 call :: Proc -> Command -> IO String
 call lock (Command line) =

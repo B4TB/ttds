@@ -49,7 +49,7 @@ static bool parse(char **input_cursor, struct parse_result *result);
 static bool cmd_should_ignore(char *);
 
 static char *call_action(struct ui_ctx *ctx, const struct command *c,
-    const struct action_container *, size_t len, bool fail_loud);
+    const struct action_container *, size_t len, bool *found);
 
 static char *run(struct ui_ctx *, const struct command *);
 
@@ -276,10 +276,12 @@ static bool cmd_should_ignore(char *line)
 }
 
 static char *call_action(struct ui_ctx *ctx, const struct command *c,
-    const struct action_container *candidates, size_t len, bool fail_loud)
+    const struct action_container *candidates, size_t len, bool *found)
 {
 	for (size_t i = 0; i < len; i++) {
 		if (strcmp(c->action, candidates[i].name) == 0) {
+			*found = true;
+
 			char *err_buf = candidates[i].hook(
 			    ctx, c->target_name, c->argc, c->argv);
 
@@ -290,25 +292,27 @@ static char *call_action(struct ui_ctx *ctx, const struct command *c,
 		}
 	}
 
-	if (fail_loud) {
-		char *ret = malloc(512);
-		snprintf(ret, 512, "no such action found: %s", c->action);
-		return ret;
-	} else
-		return NULL;
+	*found = false;
+
+	char *ret = malloc(512);
+	snprintf(ret, 512, "no such action found: %s", c->action);
+	return ret;
 }
 
 static char *run(struct ui_ctx *ctx, const struct command *c)
 {
 	char *ret = NULL;
+	bool found;
+
 	if (strcmp(c->target_name, "root") == 0) {
-		if ((ret = call_action(ctx, c, root_actions,
-			 sizeof(root_actions) / sizeof(*root_actions), false)))
-			return ret;
+		char *root_ret = call_action(ctx, c, root_actions,
+		    sizeof(root_actions) / sizeof(*root_actions), &found);
+		if (found)
+			return root_ret;
 	}
 
 	ret = call_action(
-	    ctx, c, actions, sizeof(actions) / sizeof(*actions), true);
+	    ctx, c, actions, sizeof(actions) / sizeof(*actions), &found);
 	return ret;
 }
 
