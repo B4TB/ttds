@@ -263,6 +263,76 @@ DEFN_RENDER(bezier2)
 	}
 }
 
+DEFN_RENDER(triangle)
+{
+	const struct triangle tri = *triangle;
+
+	// Draw edges explicitly, since testing whether edge
+	// coordinates are within the triangle is finicky, especially
+	// for thin sections.
+	rendering_draw_line(c,
+	    &(struct line) { .x0 = tri.x0,
+		.y0 = tri.y0,
+		.x1 = tri.x1,
+		.y1 = tri.y1,
+		.c = tri.c });
+	rendering_draw_line(c,
+	    &(struct line) { .x0 = tri.x0,
+		.y0 = tri.y0,
+		.x1 = tri.x2,
+		.y1 = tri.y2,
+		.c = tri.c });
+	rendering_draw_line(c,
+	    &(struct line) { .x0 = tri.x1,
+		.y0 = tri.y1,
+		.x1 = tri.x2,
+		.y1 = tri.y2,
+		.c = tri.c });
+
+	// Compute the inclusive bounding box for the triangle. We're
+	// iterating through about twice as many pixels as we strictly
+	// need to.
+	const uint16_t bound_left = min(tri.x0, min(tri.x1, tri.x2));
+	const uint16_t bound_right = max(tri.x0, max(tri.x1, tri.x2));
+	const uint16_t bound_up = min(tri.y0, min(tri.y1, tri.y2));
+	const uint16_t bound_down = max(tri.y0, max(tri.y1, tri.y2));
+
+	// For each pixel, we first find its barycentric
+	// coordinates[1] with respect to the triangle. Afterward we
+	// simply check that each component, when scaled, is in the
+	// range [0, 1].
+	//
+	// [1]: https://en.wikipedia.org/wiki/Barycentric_coordinate_system
+
+	const int64_t det = ((int64_t)tri.y1 - (int64_t)tri.y2) *
+		((int64_t)tri.x0 - (int64_t)tri.x2) +
+	    ((int64_t)tri.x2 - (int64_t)tri.x1) *
+		((int64_t)tri.y0 - (int64_t)tri.y2);
+
+	// Compute scaled bounds for points in the triangle.
+	const int64_t lo = min(0, det);
+	const int64_t hi = max(0, det);
+
+	for (int32_t y = bound_up; y <= bound_down; y++) {
+		for (int32_t x = bound_left; x <= bound_right; x++) {
+			// looks like lisp lmao
+			const int64_t b1 = ((int64_t)tri.y1 - (int64_t)tri.y2) *
+				((int64_t)x - (int64_t)tri.x2) +
+			    ((int64_t)tri.x2 - (int64_t)tri.x1) *
+				((int64_t)y - (int64_t)tri.y2);
+			const int64_t b2 = ((int64_t)tri.y2 - (int64_t)tri.y0) *
+				((int64_t)x - (int64_t)tri.x2) +
+			    ((int64_t)tri.x0 - (int64_t)tri.x2) *
+				((int64_t)y - (int64_t)tri.y2);
+			const int64_t b3 = det - b1 - b2;
+
+			if (lo <= b1 && b1 <= hi && lo <= b2 && b2 <= hi &&
+			    lo <= b3 && b3 <= hi)
+				draw_point(c, x, y, tri.c);
+		}
+	}
+}
+
 void rendering_dump_bgra_to_rgba(
     const struct canvas *c, DIR *dir, const char *dirpath, const char *path)
 {

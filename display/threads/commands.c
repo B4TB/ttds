@@ -68,6 +68,8 @@ static char *act_copy_rect(
     struct ui_ctx *, char *target, size_t argc, char **argv);
 static char *act_bezier2(
     struct ui_ctx *, char *target, size_t argc, char **argv);
+static char *act_triangle(
+    struct ui_ctx *, char *target, size_t argc, char **argv);
 
 static char *act_term(struct ui_ctx *, char *target, size_t argc, char **argv);
 static char *act_save(struct ui_ctx *, char *target, size_t argc, char **argv);
@@ -84,6 +86,7 @@ static const struct action_container actions[] = {
 	{ "LINE", act_line },
 	{ "COPY_RECT", act_copy_rect },
 	{ "BEZIER2", act_bezier2 },
+	{ "TRIANGLE", act_triangle },
 };
 
 static const struct action_container root_actions[] = {
@@ -538,6 +541,37 @@ static char *act_bezier2(
 	if (r != UI_OK) {
 		err_buf = malloc(1024);
 		snprintf(err_buf, 1024, "act_bezier2: failed: %s",
+		    ui_failure_str(r));
+	}
+
+	return err_buf;
+}
+
+static char *act_triangle(
+    struct ui_ctx *ctx, char *target, size_t argc, char **argv)
+{
+	char *err_buf = NULL;
+	struct triangle tri;
+
+	long x0, y0, x1, y1, x2, y2;
+
+	if ((err_buf = parse_args(
+		 "ciiiiii", argc, argv, &tri.c, &x0, &y0, &x1, &y1, &x2, &y2)))
+		return err_buf;
+
+	tri.x0 = x0;
+	tri.y0 = y0;
+	tri.x1 = x1;
+	tri.y1 = y1;
+	tri.x2 = x2;
+	tri.y2 = y2;
+
+	enum ui_failure r = ui_pane_draw_shape(
+	    ctx, target, &tri, rendering_draw_triangle_type_erased);
+
+	if (r != UI_OK) {
+		err_buf = malloc(1024);
+		snprintf(err_buf, 1024, "act_triangle: failed: %s",
 		    ui_failure_str(r));
 	}
 

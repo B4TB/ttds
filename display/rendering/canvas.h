@@ -40,6 +40,13 @@ struct bezier2 {
 	struct color c;
 };
 
+struct triangle {
+	uint16_t x0, y0;
+	uint16_t x1, y1;
+	uint16_t x2, y2;
+	struct color c;
+};
+
 struct canvas {
 	uint16_t width, height;
 	uint32_t stride;
@@ -61,6 +68,7 @@ DECL_RENDERING_FNS(circle)
 DECL_RENDERING_FNS(line)
 DECL_RENDERING_FNS(rect_copy)
 DECL_RENDERING_FNS(bezier2)
+DECL_RENDERING_FNS(triangle)
 
 void rendering_dump_bgra_to_rgba(
     const struct canvas *c, DIR *dir, const char *dirpath, const char *path);

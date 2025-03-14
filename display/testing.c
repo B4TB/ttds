@@ -36,6 +36,8 @@ static void test_lines_burst(struct canvas *c);
 static void test_lines_array(struct canvas *c);
 static void test_copy_rect(struct canvas *c);
 static void test_bezier2(struct canvas *c);
+static void test_triangles(struct canvas *c);
+static void test_triangle_array(struct canvas *c);
 
 void run_tests(const char *dump_dir)
 {
@@ -79,6 +81,20 @@ void run_tests(const char *dump_dir)
 		    .fill_color = BG,
 		    .draw_fn = test_bezier2,
 		    .output_path = "bezier2.data",
+		    .width = 128,
+		    .height = 128,
+		},
+		{
+		    .fill_color = BG,
+		    .draw_fn = test_triangles,
+		    .output_path = "triangles.data",
+		    .width = 64,
+		    .height = 64,
+		},
+		{
+		    .fill_color = BG,
+		    .draw_fn = test_triangle_array,
+		    .output_path = "triangle-array.data",
 		    .width = 128,
 		    .height = 128,
 		},
@@ -370,6 +386,72 @@ static void test_bezier2(struct canvas *c)
 				.y2 = row_start + row_len,
 				.c = FG,
 			    });
+		}
+	}
+}
+
+static void test_triangles(struct canvas *c)
+{
+	const struct triangle triangles[] = {
+		{ c->width / 32, 7 * c->height / 32, c->width / 16,
+		    3 * c->height / 8, 5 * c->width / 32, 7 * c->height / 32,
+		    FG },
+		{ c->width / 16, 7 * c->height / 8, 11 * c->width / 16,
+		    15 * c->height / 16, 11 * c->width / 32,
+		    11 * c->height / 16, FG },
+		{ 11 * c->width / 16, 27 * c->height / 32, 19 * c->width / 32,
+		    c->height / 32, 9 * c->width / 32, c->height / 2, FG },
+		{ 15 * c->width / 16, 21 * c->height / 32, 13 * c->width / 16,
+		    29 * c->height / 32, 23 * c->width / 32, 3 * c->height / 32,
+		    FG },
+	};
+	for (size_t i = 0; i < sizeof(triangles) / sizeof(*triangles); i++) {
+		rendering_draw_triangle(c, &triangles[i]);
+	}
+}
+
+static void test_triangle_array(struct canvas *c)
+{
+	const int32_t cols = 8;
+	const int32_t rows = 8;
+
+	const int32_t col_len = c->width / cols;
+	const int32_t row_len = c->height / rows;
+
+	// index used for shuffling points around
+	size_t i = 0;
+
+	for (int32_t col = 0; col < cols; col++) {
+		for (int32_t row = 0; row < rows; row++) {
+			int32_t col_start = col * col_len;
+			int32_t row_start = row * row_len;
+			int32_t dx = col * col_len / cols;
+			int32_t dy = row * row_len / rows;
+
+			// same as bézier test case
+			int32_t xs[3] = {
+				col_start + col_len - dx,
+				col_start + col_len,
+				col_start,
+			};
+			int32_t ys[3] = {
+				row_start + row_len - dy,
+				row_start + dy,
+				row_start + row_len,
+			};
+
+			rendering_draw_triangle(c,
+			    &(struct triangle) {
+				.x0 = xs[(i + 0) % 3],
+				.y0 = ys[(i + 0) % 3],
+				.x1 = xs[(i + 1) % 3],
+				.y1 = ys[(i + 1) % 3],
+				.x2 = xs[(i + 2) % 3],
+				.y2 = ys[(i + 2) % 3],
+				.c = FG,
+			    });
+
+			i++;
 		}
 	}
 }
