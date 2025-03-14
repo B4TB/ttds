@@ -45,6 +45,7 @@ runWebServer proc ts =
     makeDrawRoute "LINE" "line" ["color", "x", "y", "x2", "y2"]
     makeDrawRoute "COPY_RECT" "copy_rect" ["x", "y", "x2", "y2", "w", "h"]
     makeDrawRoute "BEZIER2" "bezier2" ["color", "x0", "y0", "x1", "y1", "x2", "y2"]
+    makeDrawRoute "TRIANGLE" "triangle" ["color", "x0", "y0", "x1", "y1", "x2", "y2"]
 
     delete "/pane/:pane" $
       pathParam "pane" >>= checkAuthScotty >>= \pane ->

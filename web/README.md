@@ -52,6 +52,7 @@ The following methods are allowed:
 | POST   | /pane/\<name\>/line      | `color`, `x`, `y`, `x2`, `y2`               | Yes.           | Draw a line on a pane.                                                 |
 | POST   | /pane/\<name\>/copy_rect | `x`, `y`, `w`, `h`, `x2`, `y2`              | Yes.           | Copy a rectangle to another place.                                     |
 | POST   | /pane/\<name\>/bezier2   | `color`, `x0`, `y0`, `x1`, `y1`, `x2`, `y2` | Yes.           | Draw a quadratic bézier curve on a pane with the given control points. |
+| POST   | /pane/\<name\>/triangle  | `color`, `x0`, `y0`, `x1`, `y1`, `x2`, `y2` | Yes.           | Draw a triangle on a pane.                                             |
 | DELETE | /pane/\<name\>           | None.                                       | Yes.           | Delete a pane.                                                         |
 
 
