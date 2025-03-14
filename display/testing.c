@@ -33,6 +33,7 @@ static void run_these_tests(
 static void test_rects(struct canvas *c);
 static void test_circles(struct canvas *c);
 static void test_lines_burst(struct canvas *c);
+static void test_lines_array(struct canvas *c);
 static void test_copy_rect(struct canvas *c);
 static void test_bezier2(struct canvas *c);
 
@@ -59,6 +60,13 @@ void run_tests(const char *dump_dir)
 		    .output_path = "lines-burst.data",
 		    .width = 32,
 		    .height = 32,
+		},
+		{
+		    .fill_color = BG,
+		    .draw_fn = test_lines_array,
+		    .output_path = "lines-array.data",
+		    .width = 128,
+		    .height = 128,
 		},
 		{
 		    .fill_color = BG,
@@ -229,6 +237,45 @@ static void test_lines_burst(struct canvas *c)
 	}
 }
 
+static void test_lines_array(struct canvas *c)
+{
+	const int32_t cols = 7;
+	const int32_t rows = 13;
+	const int32_t gap = 1;
+
+	const int32_t col_len = c->width / cols;
+	const int32_t row_len = c->height / rows;
+
+	for (int32_t col = 0; col < cols; col++) {
+		for (int32_t row = 0; row < rows; row++) {
+			int32_t col_start = col * c->width / cols;
+			int32_t row_start = row * c->height / rows;
+			int32_t cx = col_start + col_len / 2;
+			int32_t cy = row_start + row_len / 2;
+
+			float p = (float)(cols * row + col) /
+			    ((float)cols * (float)rows);
+
+			rendering_draw_line(c,
+			    &(struct line) {
+				.x0 = cx +
+				    roundf(cosf(p * TAU) *
+					((float)col_len / 2 - gap)),
+				.y0 = cy +
+				    roundf(sinf(p * TAU) *
+					((float)row_len / 2 - gap)),
+				.x1 = cx +
+				    roundf(cosf(p * TAU + PI) *
+					((float)col_len / 2 - gap)),
+				.y1 = cy +
+				    roundf(sinf(p * TAU + PI) *
+					((float)row_len / 2 - gap)),
+				.c = FG,
+			    });
+		}
+	}
+}
+
 static void test_copy_rect(struct canvas *c)
 {
 	// Fill the screen with something.
@@ -308,8 +355,8 @@ static void test_bezier2(struct canvas *c)
 
 	for (int32_t col = 0; col < cols; col++) {
 		for (int32_t row = 0; row < rows; row++) {
-			int32_t col_start = col * col_len;
-			int32_t row_start = row * row_len;
+			int32_t col_start = col * c->width / cols;
+			int32_t row_start = row * c->height / rows;
 			int32_t dx = col * col_len / cols;
 			int32_t dy = row * row_len / rows;
 
