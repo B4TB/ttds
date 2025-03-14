@@ -121,6 +121,9 @@ class Pane:
     def bezier2(self, x0, y0, x1, y1, x2, y2, color: Color):
         self._draw("bezier2", x0=x0, y0=y0, x1=x1, y1=y1, x2=x2, y2=y2, color=color)
 
+    def triangle(self, x0, y0, x1, y1, x2, y2, color: Color):
+        self._draw("triangle", x0=x0, y0=y0, x1=x1, y1=y1, x2=x2, y2=y2, color=color)
+
     def _draw(self, shape, **kwargs):
         assert self._token is not None
         self.conn.request("pane", self.name, shape, auth=self._token, **kwargs)
